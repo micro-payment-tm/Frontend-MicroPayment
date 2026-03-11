@@ -11,7 +11,7 @@ import {
 import { mainnet } from "viem/chains";
 import "@rainbow-me/rainbowkit/styles.css";
 
-//tes deploy
+//tes depl
 const mezoMainnet = {
   ...mainnet,
   id: 420420421,
