@@ -37,10 +37,7 @@ export function WalletInfo() {
           <span className="info-label">Network ID</span>
           <span className="info-value">{chainId}</span>
         </div>
-        <div className="info-row">
-          <span className="info-label">Balance</span>
-          <span className="info-value">{balance}</span>
-        </div>
+
         {balance && (
           <div className="info-row">
             <span className="info-label">Balance</span>
