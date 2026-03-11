@@ -1,8 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
+const nextConfig = {
+  transpilePackages: ["@mezo-org/orangekit-contracts"],
 };
 
-export default nextConfig;
+module.exports = nextConfig;

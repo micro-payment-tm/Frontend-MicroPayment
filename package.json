@@ -9,14 +9,20 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "@mezo-org/passport": "^0.17.2",
+    "@rainbow-me/rainbowkit": "^2.0.2",
+    "@tanstack/react-query": "^5.90.21",
+    "next": "^16.1.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "viem": "^2.47.1",
+    "wagmi": "^2.19.5"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.24",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",

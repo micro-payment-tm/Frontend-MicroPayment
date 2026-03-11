@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mezo Passport App
 
-## Getting Started
+Next.js integration with Mezo Passport wallet on Matsnet testnet.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+## Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env.local`:
 
-## Learn More
+```env
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+```
 
-To learn more about Next.js, take a look at the following resources:
+Get free Project ID at https://cloud.walletconnect.com/
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Required Fixes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Fix 1: orangekit-smart-account exports
 
-## Deploy on Vercel
+**Problem:**
+```
+Module not found: Can't resolve '@mezo-org/orangekit-smart-account/src/lib/utils/chains'
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Solution:**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Edit `node_modules/@mezo-org/orangekit-smart-account/package.json`:
+
+Add `"exports"` field after `"main"`:
+
+```json
+{
+  "name": "@mezo-org/orangekit-smart-account",
+  "version": "1.0.0-beta.24",
+  "main": "dist/src/index.js",
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./src/lib/utils/chains": "./dist/src/lib/utils/chains.js"
+  },
+  ...
+}
+```
+
+> **Important:** Run `npm install` again will reset this fix. Re-apply if needed.
+
+### Fix 2: next.config.ts
+
+**File:** `next.config.ts`
+
+```typescript
+const nextConfig = {
+  turbopack: {},
+};
+
+module.exports = nextConfig;
+```
+
+## Running
+
+```bash
+# Development
+npm run dev
+
+# Production
+npm run build
+npm start
+```
+
+## Known Issues
+
+1. **ReactCurrentDispatcher error** - Using wagmi + RainbowKit standard instead of @mezo-org/passport due to bundled React conflict with Next.js 16.
+
+2. **Module resolution** - May need to re-apply Fix #1 after `npm install`.
+
+## Tech Stack
+
+- Next.js 16
+- wagmi + RainbowKit
+- Mezo Testnet (chain ID: 31611)
