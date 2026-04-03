@@ -109,6 +109,7 @@ a.secondary {
 @media (max-width: 600px) {
   .main {
     padding: 48px 24px;
+    min-height: auto;
   }
 
   .intro {
@@ -116,9 +117,47 @@ a.secondary {
   }
 
   .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
+    font-size: 28px;
+    line-height: 36px;
     letter-spacing: -1.92px;
+    max-width: 100%;
+  }
+
+  .intro p {
+    font-size: 16px;
+    line-height: 26px;
+    max-width: 100%;
+  }
+
+  .ctas {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .ctas a {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .main {
+    padding: 32px 16px;
+  }
+
+  .intro h1 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .intro p {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .main {
+    max-width: 1000px;
   }
 }
 

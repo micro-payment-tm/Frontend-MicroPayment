@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useAccount } from "wagmi";
+import { useEffect, useRef, useState } from "react";
+import { useAccount, useSignMessage, useDisconnect } from "wagmi";
 import { getNonce, login, getAuthToken } from "@/repostiory/auth";
 
 export function AuthHandler({ children }: { children: React.ReactNode }) {
   const { address, isConnected } = useAccount();
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const hasAuthed = useRef(false);
+  const { signMessage } = useSignMessage();
+  const { disconnect } = useDisconnect();
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  const hasTriedAuth = useRef(false);
+
+  // check token on first load
   useEffect(() => {
     const token = getAuthToken();
     if (token) {
@@ -18,79 +23,81 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    console.log("AuthHandler: isConnected:", isConnected, "address:", address, "hasAuthed:", hasAuthed.current);
+    if (!isConnected || !address) return;
+    if (hasTriedAuth.current) return;
 
-    if (!isConnected || !address || hasAuthed.current) return;
-
-    const handleAuth = async () => {
+    const authenticate = async () => {
       setIsAuthenticating(true);
-      console.log("AuthHandler: Starting auth flow...");
+      hasTriedAuth.current = true;
 
       try {
-        console.log("AuthHandler: Getting nonce for:", address);
+        // 1️⃣ get nonce
         const nonceResult = await getNonce(address);
-        console.log("AuthHandler: Nonce result:", nonceResult);
-        
+
         if (!nonceResult.success || !nonceResult.nonce) {
-          console.error("Failed to get nonce:", nonceResult.message);
+          console.error("Failed get nonce");
           setIsAuthenticating(false);
           return;
         }
 
-        const message = "Sign to login to MicroPayment: " + nonceResult.nonce;
-        console.log("AuthHandler: Message to sign:", message);
-        
-        let signature: string;
-        
-        // Langsung pakai window.ethereum - lebih reliable
-        if (typeof window !== "undefined" && (window as any).ethereum) {
-          try {
-            // Coba eth_sign dulu (raw message)
-            signature = await (window as any).ethereum.request({
-              method: "eth_sign",
-              params: [address, message],
-            });
-            console.log("AuthHandler: Signed with eth_sign:", signature);
-          } catch (ethSignErr) {
-            console.error("eth_sign failed, trying personal_sign:", ethSignErr);
-            // Fallback ke personal_sign
-            signature = await (window as any).ethereum.request({
-              method: "personal_sign",
-              params: [message, address],
-            });
-            console.log("AuthHandler: Signed with personal_sign:", signature);
-          }
-        } else {
-          console.error("No ethereum provider available");
-          setIsAuthenticating(false);
-          return;
-        }
+        const message = `Sign this message to login.\n\nNonce: ${nonceResult.nonce}`;
 
-        localStorage.setItem("authSignature", signature);
+        // 2️⃣ sign message
+        const signature = await new Promise<string>((resolve, reject) => {
+          signMessage(
+            { message },
+            {
+              onSuccess: (sig: string) => resolve(sig),
+              onError: (err: Error) => reject(err),
+            }
+          );
+        });
 
-        console.log("AuthHandler: Calling login...");
+        // 3️⃣ login
         const loginResult = await login({
           address,
           signature,
           nonce: nonceResult.nonce,
         });
-        console.log("AuthHandler: Login result:", loginResult);
 
-        if (loginResult.success) {
-          setIsAuthenticated(true);
-          hasAuthed.current = true;
-        } else {
-          console.error("Login failed:", loginResult.message);
+        if (!loginResult.success) {
+          console.error("Login failed");
+          disconnect();
+          setIsAuthenticating(false);
+          return;
         }
-      } catch (error) {
-        console.error("Auth error:", error);
+
+        setIsAuthenticated(true);
+      } catch (err) {
+        console.error("Auth error", err);
+        disconnect();
       }
 
       setIsAuthenticating(false);
     };
 
-    handleAuth();
-  }, [isConnected, address]);
+    authenticate();
+  }, [isConnected, address, signMessage, disconnect]);
+
+  // if (isAuthenticating) {
+  //   return (
+  //     <div className="flex items-center justify-center h-screen">
+  //       <p>Authenticating wallet...</p>
+  //     </div>
+  //   );
+  // }
+
+  if (!isConnected) {
+    return <>{children}</>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Please sign the message to continue</p>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }

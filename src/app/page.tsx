@@ -1,29 +1,23 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { WalletInfo } from "@/components/WalletInfo";
 import { SignMessage } from "@/components/SignMessage";
 import { SendPayment } from "@/components/SendPayment";
+import { CourseLecture } from "@/components/course";
 import { Deposit } from "@/components/Deposit";
 import { AccountSidebar } from "@/components/AccountSidebar";
 import { AuthHandler } from "@/components/AuthHandler";
+import Link from "next/link";
 import "@rainbow-me/rainbowkit/styles.css";
 import "@/lib/navBar.css";
 
-const Providers = dynamic(
-  () => import("@/components/Providers").then((mod) => mod.Providers),
-  { ssr: false },
-);
-
 export default function Home() {
   return (
-    <Providers>
-      <AuthHandler>
-        <HomeContent />
-      </AuthHandler>
-    </Providers>
+    <AuthHandler>
+      <HomeContent />
+    </AuthHandler>
   );
 }
 
@@ -37,13 +31,13 @@ function HomeContent() {
           <div className="logoWrap">
             <span className="logoIcon">₿</span>
             <span className="logoText">
-              Web3<span className="logoAccent">Learn</span>
+              Physics<span className="logoAccent">Learn</span>
             </span>
           </div>
           {["Courses", "Library", "Community", "Wallet"].map((n) => (
-            <a key={n} className="navLink">
+            <Link key={n} href={`/${n.toLowerCase()}`} className="navLink">
               {n}
-            </a>
+            </Link>
           ))}
         </div>
         <div className="navRight">
@@ -93,12 +87,13 @@ function HomeContent() {
             display: "flex",
             gap: "24px",
             width: "100%",
-            maxWidth: "1100px",
+
+            minWidth: 0,
             position: "relative",
             zIndex: 10,
           }}
         >
-          <section className="dashboard" style={{ flex: 1 }}>
+          <section className="dashboard" style={{ flex: 2, minWidth: 0 }}>
             <WalletInfo />
             <SendPayment />
             <Deposit />

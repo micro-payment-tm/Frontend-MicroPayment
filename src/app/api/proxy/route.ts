@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 function buildProxyUrl(baseUrl: string, path: string): string {
   const separator = path.startsWith("/") ? "" : "/";
@@ -10,13 +11,13 @@ function buildProxyUrl(baseUrl: string, path: string): string {
 export async function GET(request: NextRequest) {
   const path = request.nextUrl.searchParams.get("path") || "";
   const targetUrl = buildProxyUrl(API_BASE_URL, path);
-  
+
   console.log("[Proxy GET]", targetUrl);
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  
+
   request.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (lowerKey !== "host" && lowerKey !== "content-length") {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     console.error("[Proxy GET] error:", error);
     return NextResponse.json(
       { error: "Failed to connect to backend" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -46,13 +47,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const path = request.nextUrl.searchParams.get("path") || "";
   const targetUrl = buildProxyUrl(API_BASE_URL, path);
-  
+
   console.log("[Proxy POST]", targetUrl);
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  
+
   request.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (lowerKey !== "host" && lowerKey !== "content-length") {
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     console.error("[Proxy POST] error:", error);
     return NextResponse.json(
       { error: "Failed to connect to backend" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

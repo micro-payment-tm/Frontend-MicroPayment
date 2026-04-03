@@ -22,9 +22,6 @@ export async function sendPayment(
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
-  console.log("Sending payment:", params);
-  console.log("Token:", token);
-
   const amountInWei = toWei(params.amount);
 
   try {
@@ -60,6 +57,47 @@ export async function sendPayment(
     };
   } catch (error) {
     console.error("Payment error:", error);
+    return {
+      success: false,
+      message: "Failed to connect to server. Make sure the backend is running.",
+    };
+  }
+}
+
+export async function depositAccount(
+  params: SendPaymentParams,
+): Promise<SendPaymentResponse> {
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+
+  try {
+    const response = await fetch(`/api/proxy?path=/api/v1/payment/deposit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        amount: params.amount,
+      }),
+    });
+
+    const data = await response.json();
+    console.log("Response data:", data);
+
+    if (response.ok) {
+      return {
+        success: true,
+        txHash: data.tx_hash,
+      };
+    }
+
+    return {
+      success: false,
+      message: data.error || data.message || "Deposit failed",
+    };
+  } catch (error) {
+    console.error("Deposit error:", error);
     return {
       success: false,
       message: "Failed to connect to server. Make sure the backend is running.",

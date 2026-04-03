@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ProvidersWrapper } from "@/components/ProvidersWrapper";
 
 export const metadata: Metadata = {
   title: "Mezo Passport dApp",
@@ -26,7 +27,9 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <div suppressHydrationWarning>{children}</div>
+        <div suppressHydrationWarning>
+          <ProvidersWrapper>{children}</ProvidersWrapper>
+        </div>
       </body>
     </html>
   );

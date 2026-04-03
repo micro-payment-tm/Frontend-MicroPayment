@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -8,8 +8,19 @@ import {
   darkTheme,
   getDefaultConfig,
 } from "@rainbow-me/rainbowkit";
-import { mainnet } from "viem/chains";
 import "@rainbow-me/rainbowkit/styles.css";
+
+const mainnet = {
+  id: 1,
+  name: "Ethereum",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://eth-mainnet.g.alchemy.com/v2/demo"] },
+  },
+  blockExplorers: {
+    default: { name: "Etherscan", url: "https://etherscan.io" },
+  },
+} as const;
 
 //tes deploy
 const mezoMainnet = {

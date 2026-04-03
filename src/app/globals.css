@@ -183,11 +183,12 @@ a {
     position: relative;
     z-index: 10;
     width: 100%;
-    max-width: 700px;
+    min-width: 0; /* tambah ini */
     display: flex;
     flex-direction: column;
     gap: 24px;
     margin-top: 16px;
+    /* hapus max-width: 700px */
 }
 
 /* ── Wallet Card ── */
@@ -494,23 +495,202 @@ a {
 }
 
 /* ── Responsive ── */
-@media (max-width: 600px) {
+@media (max-width: 900px) {
     .hero {
-        padding: 48px 0 40px;
-    }
-    .hero-title {
-        font-size: 2rem;
+        padding: 60px 0 40px;
     }
     .header {
-        padding: 16px 0;
+        padding: 20px 0;
     }
     .features {
-        grid-template-columns: 1fr 1fr;
+        gap: 16px;
     }
 }
-@media (max-width: 400px) {
+
+@media (max-width: 768px) {
+    .main {
+        padding: 0 16px 60px;
+    }
+    .header {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px 0;
+    }
+    .logo {
+        justify-content: center;
+    }
+    .hero {
+        padding: 40px 0 32px;
+        gap: 16px;
+    }
+    .hero-title {
+        font-size: clamp(2rem, 5vw, 3rem);
+    }
+    .hero-subtitle {
+        font-size: 0.95rem;
+        max-width: 100%;
+        padding: 0 16px;
+    }
+    .hero-cta {
+        gap: 8px;
+    }
+    .dashboard {
+        gap: 16px;
+    }
+    .wallet-card {
+        border-radius: var(--radius);
+    }
+    .wallet-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+    .wallet-body {
+        padding: 16px;
+    }
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .sign-card {
+        padding: 16px;
+    }
     .features {
-        grid-template-columns: 1fr;
+        margin: 32px auto;
+    }
+    .feature-card {
+        width: calc(50% - 8px);
+        padding: 16px;
+    }
+    .sidebar {
+        width: 100%;
+        border-radius: var(--radius);
+        padding: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .hero {
+        padding: 32px 0 24px;
+    }
+    .hero-title {
+        font-size: 1.75rem;
+    }
+    .hero-badge {
+        font-size: 0.65rem;
+        padding: 4px 12px;
+    }
+    .cta-hint {
+        font-size: 0.7rem;
+    }
+    .feature-card {
+        width: 100%;
+    }
+    .footer {
+        padding: 24px 0 0;
+    }
+    .footer p {
+        font-size: 0.7rem;
+    }
+    .wallet-status {
+        gap: 6px;
+    }
+    .status-text {
+        font-size: 0.7rem;
+    }
+    .disconnect-btn {
+        font-size: 0.7rem;
+        padding: 4px 10px;
+    }
+    .info-label {
+        font-size: 0.65rem;
+    }
+    .info-value {
+        font-size: 0.8rem;
+    }
+    .info-value.address {
+        font-size: 0.75rem;
+    }
+    .card-title {
+        font-size: 0.9rem;
+    }
+    .text-input {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+    .action-btn {
+        padding: 10px 16px;
+        font-size: 0.8rem;
+        width: 100%;
+    }
+    .result-box {
+        padding: 10px;
+    }
+    .result-label {
+        font-size: 0.65rem;
+    }
+    .result-value {
+        font-size: 0.7rem;
+    }
+    .explorer-link {
+        font-size: 0.7rem;
+    }
+    .sidebar-title {
+        font-size: 0.9rem;
+    }
+    .sidebar-label {
+        font-size: 0.65rem;
+    }
+    .sidebar-address {
+        font-size: 0.75rem;
+    }
+    .sidebar-balance {
+        font-size: 1rem;
+    }
+    .sidebar-btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .main {
+        padding: 0 12px 48px;
+    }
+    .hero-title {
+        font-size: 1.5rem;
+    }
+    .hero-subtitle {
+        font-size: 0.85rem;
+    }
+    .wallet-header {
+        padding: 10px 12px;
+    }
+    .wallet-body {
+        padding: 12px;
+    }
+    .sign-card {
+        padding: 12px;
+    }
+    .bg-glow {
+        width: 100%;
+        height: 300px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .main {
+        padding: 0 48px 100px;
+    }
+    .header,
+    .hero,
+    .features,
+    .footer {
+        max-width: 1300px;
+    }
+    .hero-title {
+        font-size: 4.5rem;
     }
 }
 
@@ -589,5 +769,28 @@ a {
     .sidebar {
         width: 100%;
         position: static;
+    }
+}
+
+@media (max-width: 600px) {
+    .sidebar {
+        padding: 16px;
+        gap: 12px;
+    }
+    .sidebar-title {
+        font-size: 0.9rem;
+        padding-bottom: 8px;
+    }
+    .sidebar-label {
+        font-size: 0.65rem;
+    }
+    .sidebar-balance {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .sidebar {
+        padding: 12px;
     }
 }
