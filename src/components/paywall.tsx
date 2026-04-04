@@ -284,6 +284,10 @@ export default function PaywallModal({
         {/* Backdrop */}
         <div
           ref={backdropRef}
+          onClick={() => {
+            setVisible(false);
+            onClose();
+          }}
           style={{
             position: "absolute",
             inset: 0,
@@ -380,6 +384,7 @@ export default function PaywallModal({
         {!showSuccess && (
           <div
             ref={modalRef}
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: "relative",
               zIndex: 10,

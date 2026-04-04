@@ -383,129 +383,29 @@ function LessonContent() {
               border: "1px solid rgba(255,255,255,0.07)",
             }}
           >
-            {/* Video area */}
-            <div
-              style={{
-                position: "relative",
-                paddingTop: "52%",
-                background:
-                  "radial-gradient(ellipse at center, #1a1040 0%, #060614 70%)",
-                overflow: "hidden",
-              }}
-            >
-              {/* Decorative glow lines */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundImage:
-                    "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(108,99,255,0.15) 0%, transparent 70%)",
-                }}
-              />
-              {/* Play button */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <button
-                  style={{
-                    width: "60px",
-                    height: "60px",
-                    borderRadius: "50%",
-                    background: "rgba(108,99,255,0.85)",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "22px",
-                    color: "#fff",
-                    boxShadow: "0 0 32px rgba(108,99,255,0.5)",
-                    transition: "transform 0.15s",
-                  }}
-                >
-                  ▶
-                </button>
-              </div>
-            </div>
-            {/* Controls */}
-            <div style={{ padding: "10px 16px", background: "#0a0a18" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginBottom: "8px",
-                }}
-              >
-                <span style={{ fontSize: "12px", color: "#6666aa" }}>
-                  03:42 / 12:15
-                </span>
-                <div
-                  style={{
-                    flex: 1,
-                    height: "3px",
-                    background: "rgba(255,255,255,0.1)",
-                    borderRadius: "2px",
-                    position: "relative",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "30%",
-                      height: "100%",
-                      background: "#6c63ff",
-                      borderRadius: "2px",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "30%",
-                      transform: "translate(-50%, -50%)",
-                      width: "10px",
-                      height: "10px",
-                      borderRadius: "50%",
-                      background: "#fff",
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      cursor: "pointer",
-                      opacity: 0.6,
-                    }}
-                  >
-                    🔊
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      cursor: "pointer",
-                      opacity: 0.6,
-                    }}
-                  >
-                    ⚙️
-                  </span>
-                </div>
-                <span
-                  style={{ fontSize: "16px", cursor: "pointer", opacity: 0.6 }}
-                >
-                  ⛶
-                </span>
-              </div>
-            </div>
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              paddingTop: "56.25%",
+              background: "#000",
+            }}
+          >
+            <iframe
+            src="https://drive.google.com/file/d/1WxiwXasoTKpQujbrxIEQMSZBDLyyQFuE/preview"
+            title="Introduction to Quantum Mechanics"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              border: "none"
+            }}
+          />
           </div>
+        </div>
 
           {/* Article content */}
           <h2
