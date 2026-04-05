@@ -7,85 +7,409 @@ import "@rainbow-me/rainbowkit/styles.css";
 import "@/lib/navBar.css";
 import PaywallModal from "@/components/paywall";
 
+type ContentType = "video" | "module" | "article";
+
+type CourseContentItem = {
+  id: number;
+  type: ContentType;
+  title: string;
+  price: string;
+  source?: string;
+  isFree?: boolean;
+  body?: string;
+  highlightTitle?: string;
+  highlightBody?: string;
+};
+
+type DiscussionComment = {
+  id: number;
+  contentId: number;
+  author: string;
+  role: "user" | "creator";
+  message: string;
+  createdAt: string;
+  parentId: number | null;
+};
+
+type CourseData = {
+  id: number;
+  title: string;
+  fullPrice: string;
+  contents: CourseContentItem[];
+};
+
+type AccessRecord =
+  | {
+    scope: "content";
+    contentId: number;
+  }
+  | {
+    scope: "course";
+    courseId: number;
+    access: "full";
+  };
+
 export default function LessonPage() {
   return <LessonContent />;
 }
 
-const lessonOutline = [
-  { id: 1, title: "Introduction", icon: "▶", active: true, locked: false },
+
+
+
+
+const courseData: CourseData = {
+  id: 1,
+  title: "Quantum Mechanics Basics",
+  fullPrice: "2.00",
+  contents: [
+    {
+      id: 101,
+      type: "video",
+      title: "Introduction to Quantum Mechanics",
+      price: "Free",
+      source: "146v_deL2E-x1vZME-3qW0zYMReoZovf_",
+      isFree: true,
+    },
+    {
+      id: 102,
+      type: "video",
+      title: "Wave-Particle Duality",
+      price: "0.35",
+      source: "1Fg8X_xb9ifocAacIU-xY1K5CJUvXxBet",
+      isFree: false,
+    },
+    {
+      id: 103,
+      type: "video",
+      title: "Schrödinger's Equation",
+      price: "0.25",
+      source: "ID LINK GDRIVE",
+      isFree: false,
+    },
+    {
+      id: 201,
+      type: "module",
+      title: "Quantum Mechanics Module PDF",
+      price: "Free",
+      source: "https://drive.google.com/file/d/1exKF6lLK963Dy7KBuqDoFRrVijp4YNOn/preview",
+      isFree: true,
+    },
+    {
+      id: 301,
+      type: "article",
+      title: "The Dawn of Quantum Discovery",
+      price: "Free",
+      isFree: true,
+      body: "Quantum mechanics is the fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles. It is the foundation of all quantum physics including quantum chemistry, quantum field theory, quantum technology, and quantum information science.",
+      highlightTitle: "Key Concept: Energy Quanta",
+      highlightBody: "Max Planck discovered that energy is not continuous, but rather delivered in discrete 'packets' or quanta. This revolutionary idea shattered classical physics assumptions.",
+    },
+    {
+      id: 302,
+      type: "article",
+      title: "Historical Context",
+      price: "0.001",
+      isFree: false,
+      body: "Classical physics, the collection of theories that existed before the advent of quantum mechanics, describes many aspects of nature at an ordinary (macroscopic) scale, but is not sufficient for describing them at small (atomic and subatomic) scales. Most theories in classical physics can be derived from quantum mechanics as an approximation valid at large (macroscopic) scale.",
+    },
+  ],
+};
+
+const initialComments: DiscussionComment[] = [
+  {
+    id: 1,
+    contentId: 101,
+    author: "Alya",
+    role: "user",
+    message: "Saya masih bingung perbedaan konsep kuanta dengan energi klasik. Bisa dijelaskan lebih sederhana?",
+    createdAt: "2 jam lalu",
+    parentId: null,
+  },
   {
     id: 2,
-    title: "Wave-Particle Duality",
-    icon: "〜",
-    active: false,
-    locked: true,
+    contentId: 101,
+    author: "Dr. Creator",
+    role: "creator",
+    message: "Tentu. Secara sederhana, energi klasik dianggap kontinu, sedangkan pada konsep kuanta energi hadir dalam paket diskrit.",
+    createdAt: "1 jam lalu",
+    parentId: 1,
   },
   {
     id: 3,
-    title: "Uncertainty Principle",
-    icon: "⟳",
-    active: false,
-    locked: false,
+    contentId: 201,
+    author: "Bima",
+    role: "user",
+    message: "Modulnya bagus, tetapi mungkin bisa ditambahkan contoh soal di bagian akhir.",
+    createdAt: "30 menit lalu",
+    parentId: null,
   },
 ];
-
-const nextModule = { title: "Quantum Entanglement", locked: true };
 
 function LessonContent() {
   const Router = useRouter();
   const [completed, setCompleted] = useState(false);
   const [tipAmount, setTipAmount] = useState<number | null>(null);
-  const [activeLesson, setActiveLesson] = useState(1);
+  const [isTipHovered, setIsTipHovered] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
-  const [unlockedLessons, setUnlockedLessons] = useState<number[]>(() => {
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [comments, setComments] = useState<DiscussionComment[]>(initialComments);
+  const [newComment, setNewComment] = useState("");
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [accessList, setAccessList] = useState<AccessRecord[]>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("unlockedLessons");
-      if (stored) {
-        return JSON.parse(stored);
-      }
+      const stored = localStorage.getItem("accessList");
+      return stored ? JSON.parse(stored) : [];
     }
-    return [1];
+    return [];
   });
 
+  const hasContentAccess = (contentId: number, courseId: number) => {
+    const contentItem = courseData.contents.find((item) => item.id === contentId);
+
+    if (contentItem?.isFree) return true;
+
+    return accessList.some(
+      (item) =>
+        (item.scope === "content" && item.contentId === contentId) ||
+        (item.scope === "course" &&
+          item.courseId === courseId &&
+          item.access === "full")
+    );
+  };
+
+  const hasFullCourseAccess = (courseId: number) => {
+    return accessList.some(
+      (item) =>
+        item.scope === "course" &&
+        item.courseId === courseId &&
+        item.access === "full"
+    );
+  };
+
+  const [activeContentId, setActiveContentId] = useState<number>(
+    courseData.contents[0].id
+  );
+
+  const activeContent =
+    courseData.contents.find((item) => item.id === activeContentId) ||
+    courseData.contents[0];
+
+  const [selectedContent, setSelectedContent] = useState<CourseContentItem | null>(null);
+  const [paywallMode, setPaywallMode] = useState<"content" | "course" | "tip">("content");
+
+  const openContentPaywall = (content: CourseContentItem) => {
+    setSelectedContent(content);
+    setPaywallMode("content");
+    setShowPaywallModal(true);
+  };
+
+  const openTipModal = () => {
+    setSelectedContent(null);
+    setPaywallMode("tip");
+    setShowPaywallModal(true);
+  };
+
+  const openFullCoursePaywall = () => {
+    setSelectedContent(null);
+    setPaywallMode("course");
+    setShowPaywallModal(true);
+  };
+
+  const unlockedCount = courseData.contents.filter((content) =>
+    hasContentAccess(content.id, courseData.id)
+  ).length;
+
+  const progressPercentage =
+    (unlockedCount / courseData.contents.length) * 100;
+
   useEffect(() => {
-    const stored = localStorage.getItem("unlockedLessons");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (!parsed.includes(1)) {
-        parsed.push(1);
-        localStorage.setItem("unlockedLessons", JSON.stringify(parsed));
-      }
-      setUnlockedLessons(parsed);
-    } else {
-      localStorage.setItem("unlockedLessons", JSON.stringify([1]));
-      setUnlockedLessons([1]);
-    }
+    setIsHydrated(true);
   }, []);
 
-  const isLessonLocked = (lessonId: number) => {
-    const lesson = lessonOutline.find((l) => l.id === lessonId);
-    return lesson?.locked && !unlockedLessons.includes(lessonId);
-  };
+  if (!isHydrated) {
+    return (
+      <main style={{ minHeight: "100vh", background: "#0d0d1a", color: "#e8e8f0" }}>
+        <div style={{ padding: "40px" }}>Loading course...</div>
+      </main>
+    );
+  }
 
-  const handleLessonClick = (lessonId: number) => {
-    if (isLessonLocked(lessonId)) {
-      setShowPaywallModal(true);
-    } else {
-      if (lessonId === 2) {
-        Router.push("/courses/lesson-2");
-      } else if (lessonId === 3) {
-        Router.push("/courses/lesson-3");
-      } else {
-        setActiveLesson(lessonId);
-      }
+  const activeComments = comments.filter(
+    (comment) => comment.contentId === activeContent.id
+  );
+  const rootComments = activeComments.filter((comment) => !comment.parentId);
+  const getReplies = (commentId: number) =>
+    activeComments.filter((comment) => comment.parentId === commentId);
+  const getRootParentId = (commentId: number): number => {
+    const current = activeComments.find((c) => c.id === commentId);
+    if (!current || !current.parentId) return commentId;
+    let parent = activeComments.find((c) => c.id === current.parentId);
+    while (parent && parent.parentId) {
+      parent = activeComments.find((c) => c.id === parent?.parentId);
     }
+    return parent ? parent.id : commentId;
   };
 
-  const progressPercentage = (unlockedLessons.length / lessonOutline.length) * 100;
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
 
-  const lockAllContent = () => {
-    localStorage.setItem("unlockedLessons", JSON.stringify([1]));
-    setUnlockedLessons([1]);
+    const finalParentId =
+      replyTo === null ? null : getRootParentId(replyTo);
+
+    const comment: DiscussionComment = {
+      id: Date.now(),
+      contentId: activeContent.id,
+      author: "You",
+      role: "user",
+      message: newComment.trim(),
+      createdAt: "Baru saja",
+      parentId: finalParentId,
+    };
+
+    setComments((prev) => [...prev, comment]);
+    setNewComment("");
+    setReplyTo(null);
+  };
+
+  const renderCommentThread = (comment: DiscussionComment) => {
+    const replies = getReplies(comment.id);
+
+    return (
+      <div
+        key={comment.id}
+        style={{
+          padding: "14px 16px",
+          borderRadius: "12px",
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <strong style={{ color: "#f0f0ff" }}>{comment.author}</strong>
+            <span
+              style={{
+                fontSize: "11px",
+                padding: "3px 8px",
+                borderRadius: "999px",
+                background:
+                  comment.role === "creator"
+                    ? "rgba(34,197,94,0.12)"
+                    : "rgba(108,99,255,0.12)",
+                color: comment.role === "creator" ? "#4ade80" : "#a78bfa",
+              }}
+            >
+              {comment.role === "creator" ? "Creator" : "User"}
+            </span>
+          </div>
+          <span style={{ fontSize: "12px", color: "#8d8db2" }}>
+            {comment.createdAt}
+          </span>
+        </div>
+
+        <p style={{ margin: "0 0 10px", color: "#cfcfe8", lineHeight: 1.7 }}>
+          {comment.message}
+        </p>
+
+        <button
+          onClick={() => setReplyTo(comment.id)}
+          style={{
+            padding: "6px 10px",
+            borderRadius: "8px",
+            border: "1px solid rgba(255,255,255,0.08)",
+            background: "rgba(255,255,255,0.04)",
+            color: "#b8b8d8",
+            fontSize: "12px",
+            cursor: "pointer",
+          }}
+        >
+          Reply
+        </button>
+
+        {replies.length > 0 && (
+          <div
+            style={{
+              marginTop: "14px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              paddingLeft: "14px",
+              borderLeft: "2px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            {replies.map((reply) => (
+              <div
+                key={reply.id}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background: "rgba(255,255,255,0.025)",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    marginBottom: "6px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <strong style={{ color: "#f0f0ff" }}>{reply.author}</strong>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        padding: "3px 8px",
+                        borderRadius: "999px",
+                        background:
+                          reply.role === "creator"
+                            ? "rgba(34,197,94,0.12)"
+                            : "rgba(108,99,255,0.12)",
+                        color: reply.role === "creator" ? "#4ade80" : "#a78bfa",
+                      }}
+                    >
+                      {reply.role === "creator" ? "Creator" : "User"}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "12px", color: "#8d8db2" }}>
+                    {reply.createdAt}
+                  </span>
+                </div>
+
+                <p style={{ margin: "0 0 10px", color: "#cfcfe8", lineHeight: 1.7 }}>
+                  {reply.message}
+                </p>
+
+                <button
+                  onClick={() => setReplyTo(comment.id)}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.04)",
+                    color: "#b8b8d8",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Reply
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -127,12 +451,13 @@ function LessonContent() {
       </nav>
 
       {/* LAYOUT */}
-      <div style={{ display: "flex", paddingTop: "64px", minHeight: "100vh" }}>
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+
         {/* SIDEBAR */}
         <aside
           style={{
-            width: "220px",
-            minWidth: "220px",
+            width: "300px",
+            minWidth: "300px",
             borderRight: "1px solid rgba(255,255,255,0.06)",
             padding: "28px 16px",
             position: "sticky",
@@ -147,10 +472,11 @@ function LessonContent() {
             <p
               style={{
                 fontSize: "10px",
-                letterSpacing: "0.1em",
-                color: "#7b7b9a",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                color: "#b8b8d8",
                 marginBottom: "8px",
-                fontWeight: 600,
+                textTransform: "uppercase",
               }}
             >
               COURSE PROGRESS
@@ -175,123 +501,156 @@ function LessonContent() {
               />
             </div>
             <p style={{ fontSize: "11px", color: "#7b7b9a" }}>
-              {unlockedLessons.length} of {lessonOutline.length} lessons unlocked
+              {unlockedCount} of {courseData.contents.length} contents unlocked
             </p>
           </div>
 
           {/* Lesson outline */}
-          <p
+          <div
             style={{
-              fontSize: "13px",
-              fontWeight: 700,
-              marginBottom: "12px",
-              color: "#e8e8f0",
+              marginTop: "20px",
+              marginBottom: "28px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
+              padding: "18px 20px",
             }}
           >
-            Lesson Outline
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {lessonOutline.map((lesson) => (
-              <button
-                key={lesson.id}
-                onClick={() => handleLessonClick(lesson.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "9px 12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  cursor: isLessonLocked(lesson.id) ? "not-allowed" : "pointer",
-                  textAlign: "left",
-                  fontSize: "13px",
-                  fontWeight: activeLesson === lesson.id ? 600 : 400,
-                  background:
-                    activeLesson === lesson.id
-                      ? "linear-gradient(135deg, #6c63ff, #8b5cf6)"
-                      : isLessonLocked(lesson.id)
-                        ? "rgba(255,255,255,0.02)"
-                        : "transparent",
-                  color: isLessonLocked(lesson.id)
-                    ? "#666688"
-                    : activeLesson === lesson.id
-                      ? "#fff"
-                      : "#9999bb",
-                  transition: "all 0.15s",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "12px",
-                    opacity: isLessonLocked(lesson.id) ? 0.5 : 0.8,
-                  }}
-                >
-                  {lesson.locked && !unlockedLessons.includes(lesson.id)
-                    ? "🔒"
-                    : lesson.icon}
-                </span>
-                {lesson.title}
-              </button>
-            ))}
-          </div>
-
-          {/* Next module */}
-          <div style={{ marginTop: "28px" }}>
-            <p
+            <h3
               style={{
-                fontSize: "10px",
-                letterSpacing: "0.1em",
-                color: "#7b7b9a",
-                marginBottom: "10px",
-                fontWeight: 600,
+                marginTop: 0,
+                marginBottom: "16px",
+                color: "#f0f0ff",
+                fontSize: "18px",
+                fontWeight: 700,
               }}
             >
-              NEXT MODULE
-            </p>
+              Course Contents
+            </h3>
+
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "9px 12px",
-                borderRadius: "8px",
-                color: "#666688",
-                fontSize: "13px",
+                flexDirection: "column",
+                gap: "8px",
+                paddingRight: "4px",
               }}
             >
-              <span>🔒</span>
-              {nextModule.title}
-            </div>
-          </div>
+              {courseData.contents.map((content) => {
+                const unlocked = hasContentAccess(content.id, courseData.id);
+                const isActive = activeContentId === content.id;
 
-          {/* Lock All Button */}
-          <div style={{ marginTop: "28px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <button
-              onClick={lockAllContent}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid rgba(239,68,68,0.3)",
-                background: "rgba(239,68,68,0.08)",
-                color: "#ef4444",
-                fontSize: "12px",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-              }}
-            >
-              🔒 Lock All Content
-            </button>
+                return (
+                  <button
+                    key={content.id}
+                    onClick={() => {
+                      setActiveContentId(content.id);
+                    }}
+
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: "8px",
+                      padding: "14px 14px",
+                      borderRadius: "12px",
+                      border: isActive
+                        ? "1px solid rgba(108,99,255,0.45)"
+                        : "1px solid rgba(255,255,255,0.06)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      background: isActive
+                        ? "linear-gradient(135deg, rgba(108,99,255,0.22), rgba(139,92,246,0.18))"
+                        : "rgba(255,255,255,0.03)",
+                      color: "#e8e8f0",
+                      transition: "all 0.18s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", width: "100%" }}>
+                      <span style={{ fontSize: "15px", lineHeight: 1.2, opacity: 0.95 }}>
+                        {content.type === "video" ? "🎬" : content.type === "module" ? "📘" : "📝"}
+                      </span>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            lineHeight: 1.35,
+                            color: isActive ? "#fff" : "#e8e8f0",
+                            marginBottom: "4px",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {content.title}
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#8d8db2",
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {content.type === "video" ? "Video" : content.type === "module" ? "Module" : "Article"} ·{" "}
+                          {content.isFree ? "Free" : `${content.price} mUSD`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "6px 10px",
+                        borderRadius: "999px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        background: content.isFree
+                          ? "rgba(34,197,94,0.14)"
+                          : unlocked
+                            ? "rgba(59,130,246,0.14)"
+                            : "rgba(108,99,255,0.16)",
+                        color: content.isFree
+                          ? "#4ade80"
+                          : unlocked
+                            ? "#60a5fa"
+                            : "#c4b5fd",
+                        alignSelf: "flex-end",
+                      }}
+                    >
+                      {content.isFree ? "Free" : unlocked ? "Open" : "Locked"}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {!hasFullCourseAccess(courseData.id) && (
+              <button
+                onClick={openFullCoursePaywall}
+                style={{
+                  marginTop: "16px",
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #f59e0b, #ea580c)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                💰 Unlock Full Course — {courseData.fullPrice} mUSD
+              </button>
+            )}
           </div>
         </aside>
 
         {/* MAIN CONTENT */}
         <div style={{ flex: 1, padding: "32px 48px", maxWidth: "860px" }}>
+
           {/* Unlocked badge */}
           <div
             style={{
@@ -300,11 +659,14 @@ function LessonContent() {
               gap: "6px",
               padding: "5px 12px",
               borderRadius: "20px",
-              background: unlockedLessons.includes(activeLesson)
+              background: hasContentAccess(activeContent.id, courseData.id)
                 ? "rgba(34, 197, 94, 0.12)"
                 : "rgba(255, 165, 0, 0.12)",
-              border: `1px solid ${unlockedLessons.includes(activeLesson) ? "rgba(34, 197, 94, 0.25)" : "rgba(255, 165, 0, 0.25)"}`,
-              color: unlockedLessons.includes(activeLesson)
+              border: `1px solid ${hasContentAccess(activeContent.id, courseData.id)
+                ? "rgba(34, 197, 94, 0.25)"
+                : "rgba(255, 165, 0, 0.25)"
+                }`,
+              color: hasContentAccess(activeContent.id, courseData.id)
                 ? "#4ade80"
                 : "#ffa500",
               fontSize: "12px",
@@ -312,9 +674,11 @@ function LessonContent() {
               marginBottom: "16px",
             }}
           >
-            {unlockedLessons.includes(activeLesson) ? "🔓" : "🔒"}{" "}
-            {unlockedLessons.includes(activeLesson)
-              ? "Unlocked via Micro Tip"
+            {hasContentAccess(activeContent.id, courseData.id) ? "🔓" : "🔒"}
+            {hasContentAccess(activeContent.id, courseData.id)
+              ? activeContent.isFree
+                ? "Free Content"
+                : "Unlocked Content"
               : "Premium Content"}
           </div>
 
@@ -338,8 +702,11 @@ function LessonContent() {
                 fontFamily: "'Georgia', serif",
               }}
             >
-              Quantum Mechanics Basics — Lesson 1
+              {activeContent.type === "video"
+                ? `${courseData.title} — ${activeContent.title}`
+                : activeContent.title}
             </h1>
+
             <button
               onClick={() => setCompleted(!completed)}
               style={{
@@ -370,8 +737,13 @@ function LessonContent() {
           <p
             style={{ color: "#7878a0", fontSize: "13px", marginBottom: "24px" }}
           >
-            Part of the Foundation Series · 12 mins read
+            {activeContent.type === "video"
+              ? "Part of the Foundation Series · 12 mins watch"
+              : activeContent.type === "module"
+                ? "Module document preview"
+                : "Reading material"}
           </p>
+
 
           {/* Video player */}
           <div
@@ -383,145 +755,312 @@ function LessonContent() {
               border: "1px solid rgba(255,255,255,0.07)",
             }}
           >
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              paddingTop: "56.25%",
-              background: "#000",
-            }}
-          >
-            <iframe
-            src="https://drive.google.com/file/d/1WxiwXasoTKpQujbrxIEQMSZBDLyyQFuE/preview"
-            title="Introduction to Quantum Mechanics"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              border: "none"
-            }}
-          />
-          </div>
-        </div>
+            {hasContentAccess(activeContent.id, courseData.id) ? (
+              activeContent.type === "video" ? (
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    paddingTop: "56.25%",
+                    background: "#000",
+                  }}
+                >
+                  <iframe
+                    src={`https://drive.google.com/file/d/${activeContent.source}/preview`}
+                    title={activeContent.title}
+                    allow="autoplay"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      border: "none",
+                    }}
+                  />
+                </div>
+              ) : activeContent.type === "module" ? (
+                <div style={{ padding: "14px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "12px",
+                        color: "#8d8db2",
+                      }}
+                    >
+                      Modul preview
+                    </p>
 
-          {/* Article content */}
-          <h2
-            style={{
-              fontSize: "20px",
-              fontWeight: 700,
-              color: "#f0f0ff",
-              marginBottom: "12px",
-              fontFamily: "'Georgia', serif",
-            }}
-          >
-            The Dawn of Quantum Discovery
-          </h2>
-          <p
-            style={{
-              color: "#a0a0c0",
-              lineHeight: 1.75,
-              fontSize: "15px",
-              marginBottom: "28px",
-            }}
-          >
-            Quantum mechanics is the fundamental theory in physics that provides
-            a description of the physical properties of nature at the scale of
-            atoms and subatomic particles. It is the foundation of all quantum
-            physics including quantum chemistry, quantum field theory, quantum
-            technology, and quantum information science.
-          </p>
+                    <a
+                      href={activeContent.source}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open in new tab"
+                      style={{
+                        width: "38px",
+                        height: "38px",
+                        borderRadius: "10px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(108,99,255,0.12)",
+                        border: "1px solid rgba(108,99,255,0.22)",
+                        color: "#fff",
+                        textDecoration: "none",
+                        fontSize: "18px",
+                      }}
+                    >
+                      ↗
+                    </a>
+                  </div>
 
-          {/* Key concept card */}
-          <div
-            style={{
-              borderRadius: "12px",
-              border: "1px solid rgba(108,99,255,0.2)",
-              background: "rgba(108,99,255,0.06)",
-              padding: "20px 24px",
-              marginBottom: "32px",
-              display: "flex",
-              alignItems: "center",
-              gap: "24px",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <p
+                  <div
+                    style={{
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: "#0b0b18",
+                    }}
+                  >
+                    <iframe
+                      src={activeContent.source}
+                      title={activeContent.title}
+                      style={{
+                        width: "100%",
+                        height: "760px",
+                        border: "none",
+                        display: "block",
+                        background: "#fff",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: "28px 30px" }}>
+                  <h2
+                    style={{
+                      fontSize: "34px",
+                      fontWeight: 800,
+                      color: "#f0f0ff",
+                      marginBottom: "16px",
+                      fontFamily: "'Georgia', serif",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {activeContent.title}
+                  </h2>
+
+                  <p
+                    style={{
+                      color: "#a0a0c0",
+                      lineHeight: 1.9,
+                      fontSize: "16px",
+                      marginBottom: "28px",
+                    }}
+                  >
+                    {activeContent.body}
+                  </p>
+
+                  {activeContent.highlightTitle && activeContent.highlightBody && (
+                    <div
+                      style={{
+                        borderRadius: "12px",
+                        border: "1px solid rgba(108,99,255,0.2)",
+                        background: "rgba(108,99,255,0.06)",
+                        padding: "20px 24px",
+                        marginBottom: "28px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "#a78bfa",
+                          fontWeight: 700,
+                          fontSize: "16px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        {activeContent.highlightTitle}
+                      </p>
+                      <p
+                        style={{
+                          color: "#9090b8",
+                          fontSize: "14px",
+                          lineHeight: 1.7,
+                          margin: 0,
+                        }}
+                      >
+                        {activeContent.highlightBody}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              <div
                 style={{
-                  color: "#a78bfa",
-                  fontWeight: 700,
-                  fontSize: "15px",
-                  marginBottom: "8px",
+                  padding: "48px 24px",
+                  textAlign: "center",
+                  color: "#9999bb",
                 }}
               >
-                Key Concept: Energy Quanta
-              </p>
-              <p
-                style={{ color: "#9090b8", fontSize: "14px", lineHeight: 1.65 }}
-              >
-                Max Planck discovered that energy is not continuous, but rather
-                delivered in discrete &quot;packets&quot; or quanta. This
-                revolutionary idea shattered classical physics assumptions.
-              </p>
-            </div>
-            {/* Decorative dots */}
-            <div
-              style={{
-                position: "relative",
-                width: "80px",
-                height: "60px",
-                flexShrink: 0,
-              }}
-            >
-              {[
-                { x: 20, y: 10 },
-                { x: 55, y: 35 },
-                { x: 70, y: 8 },
-              ].map((pos, i) => (
+                <div style={{ fontSize: "28px", marginBottom: "12px" }}>🔒</div>
+
                 <div
-                  key={i}
                   style={{
-                    position: "absolute",
-                    left: pos.x,
-                    top: pos.y,
-                    width: i === 1 ? "14px" : "8px",
-                    height: i === 1 ? "14px" : "8px",
-                    borderRadius: "50%",
-                    background: i === 1 ? "#6c63ff" : "rgba(255,255,255,0.2)",
+                    color: "#f0f0ff",
+                    fontSize: "20px",
+                    fontWeight: 700,
+                    marginBottom: "8px",
                   }}
-                />
-              ))}
-            </div>
+                >
+                  {activeContent.title}
+                </div>
+
+                <div style={{ marginBottom: "18px" }}>
+                  Buy this{" "}
+                  {activeContent.type === "video"
+                    ? "video"
+                    : activeContent.type === "module"
+                      ? "module"
+                      : "article"}{" "}
+                  to unlock it.
+                </div>
+
+                <button
+                  onClick={() => openContentPaywall(activeContent)}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #6c63ff, #8b5cf6)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Buy To Unlock
+                </button>
+              </div>
+            )}
           </div>
 
-          <h2
+          {/* KOLOM DISKUSI */}
+
+          <div
             style={{
-              fontSize: "20px",
-              fontWeight: 700,
-              color: "#f0f0ff",
-              marginBottom: "12px",
-              fontFamily: "'Georgia', serif",
+              marginTop: "28px",
+              borderRadius: "14px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
+              padding: "20px 24px",
             }}
           >
-            Historical Context
-          </h2>
-          <p
-            style={{
-              color: "#a0a0c0",
-              lineHeight: 1.75,
-              fontSize: "15px",
-              marginBottom: "40px",
-            }}
-          >
-            Classical physics, the collection of theories that existed before
-            the advent of quantum mechanics, describes many aspects of nature at
-            an ordinary (macroscopic) scale, but is not sufficient for
-            describing them at small (atomic and subatomic) scales. Most
-            theories in classical physics can be derived from quantum mechanics
-            as an approximation valid at large (macroscopic) scale.
-          </p>
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: "16px",
+                color: "#f0f0ff",
+                fontSize: "18px",
+                fontWeight: 700,
+              }}
+            >
+              Discussion Panel
+            </h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px" }}>
+              {rootComments.length === 0 ? (
+                <p style={{ color: "#8d8db2", margin: 0 }}>
+                  No discussion yet for this content.
+                </p>
+              ) : (
+                rootComments.map((comment) => renderCommentThread(comment))
+              )}
+            </div>
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+                paddingTop: "16px",
+              }}
+            >
+              {replyTo && (
+                <p style={{ color: "#a78bfa", fontSize: "12px", marginTop: 0 }}>
+                  Replying to this thread
+                </p>
+              )}
+
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Write your question, feedback, or suggestion..."
+                style={{
+                  width: "100%",
+                  minHeight: "110px",
+                  borderRadius: "12px",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(255,255,255,0.03)",
+                  color: "#f0f0ff",
+                  padding: "14px 16px",
+                  fontSize: "14px",
+                  resize: "vertical",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+
+              <div
+                style={{
+                  marginTop: "12px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setReplyTo(null);
+                    setNewComment("");
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.03)",
+                    color: "#b8b8d8",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear
+                </button>
+
+                <button
+                  onClick={handleAddComment}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #6c63ff, #8b5cf6)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Post Comment
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Support + Next lesson */}
           <div
@@ -567,47 +1106,30 @@ function LessonContent() {
                 content.
               </p>
             </div>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              {[2, 5].map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => setTipAmount(amt)}
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    background:
-                      tipAmount === amt ? "#6c63ff" : "rgba(255,255,255,0.06)",
-                    color: tipAmount === amt ? "#fff" : "#aaa",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  ${amt}
-                </button>
-              ))}
-            </div>
             <button
-              onClick={() => handleLessonClick(2)}
+              onClick={openTipModal}
+              onMouseEnter={() => setIsTipHovered(true)}
+              onMouseLeave={() => setIsTipHovered(false)}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "11px 22px",
+                padding: "10px 16px",
                 borderRadius: "10px",
                 border: "none",
-                background: "linear-gradient(135deg, #6c63ff, #8b5cf6)",
+                background: isTipHovered
+                  ? "linear-gradient(135deg, #4ade80, #15803d)"
+                  : "linear-gradient(135deg, #22c55e, #16a34a)",
                 color: "#fff",
-                fontSize: "14px",
                 fontWeight: 700,
+                fontSize: "13px",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                boxShadow: "0 4px 20px rgba(108,99,255,0.3)",
+                transition: "all 0.2s ease",
+                transform: isTipHovered ? "translateY(-1px)" : "translateY(0)",
+                boxShadow: isTipHovered
+                  ? "0 8px 20px rgba(34, 197, 94, 0.28)"
+                  : "0 4px 12px rgba(34, 197, 94, 0.18)",
               }}
             >
-              Next Lesson →
+              Send Your Tip
             </button>
           </div>
         </div>
@@ -618,11 +1140,32 @@ function LessonContent() {
         onClose={() => setShowPaywallModal(false)}
         onSuccess={() => {
           setShowPaywallModal(false);
-          Router.push("/courses/lesson-2");
+
+          const stored = localStorage.getItem("accessList");
+          setAccessList(stored ? JSON.parse(stored) : []);
+
+          if (paywallMode === "content" && selectedContent) {
+            setActiveContentId(selectedContent.id);
+          }
         }}
-        contentTitle="Wave-Particle Duality"
-        lessonId={2}
+        contentTitle={
+          paywallMode === "course"
+            ? courseData.title
+            : paywallMode === "tip"
+              ? "Support the Instructor"
+              : selectedContent?.title || "Content"
+        }
         creatorAddress="0xCreatorWalletAddress123456789abcdef"
+        paymentScope={paywallMode === "tip" ? "content" : paywallMode}
+        contentId={paywallMode === "content" ? selectedContent?.id : undefined}
+        courseId={courseData.id}
+        price={
+          paywallMode === "course"
+            ? courseData.fullPrice
+            : paywallMode === "tip"
+              ? "2.00"
+              : selectedContent?.price || "0.00"
+        }
       />
     </main>
   );

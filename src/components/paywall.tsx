@@ -13,8 +13,12 @@ interface PaywallModalProps {
   onClose: () => void;
   onSuccess: () => void;
   contentTitle: string;
-  lessonId?: number;
   creatorAddress?: string;
+
+  paymentScope: "content" | "course";
+  contentId?: number;
+  courseId?: number;
+  price: string;
 }
 
 export default function PaywallModal({
@@ -22,24 +26,34 @@ export default function PaywallModal({
   onClose,
   onSuccess,
   contentTitle,
-  lessonId,
   creatorAddress = "0xD7cA1254d669bed370d375d49d9e7c5750aF8Fc8",
+  paymentScope,
+  contentId,
+  courseId,
+  price,
 }: PaywallModalProps) {
   const [visible, setVisible] = useState(isOpen);
   const [selectedToken, setSelectedToken] = useState("MEZO");
-  const [tipAmount, setTipAmount] = useState("0.0001");
+  const [tipAmount, setTipAmount] = useState(price || "0.0001");
   const [isProcessing, setIsProcessing] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState("");
   const { address, isConnected, connector } = useAccount();
   const { data: balance } = useBalance({ address });
+
   // NEW: separate state untuk tampilkan success overlay
   const [showSuccess, setShowSuccess] = useState(false);
 
-  useEffect(() => {
-    setVisible(isOpen);
-  }, [isOpen]);
+useEffect(() => {
+  setVisible(isOpen);
+
+  if (isOpen) {
+    setShowSuccess(false);
+    setUnlocked(false);
+    setPaymentError("");
+  }
+}, [isOpen]);
 
   useEffect(() => {
     const generateQR = async () => {
@@ -205,18 +219,36 @@ export default function PaywallModal({
     setUnlocked(true);
 
     // Save unlocked lesson
-    if (lessonId) {
-      const stored = localStorage.getItem("unlockedLessons");
-      let unlockedLessons: number[] = [];
-      if (stored) unlockedLessons = JSON.parse(stored);
-      if (!unlockedLessons.includes(lessonId)) {
-        unlockedLessons.push(lessonId);
-        localStorage.setItem(
-          "unlockedLessons",
-          JSON.stringify(unlockedLessons),
-        );
-      }
-    }
+    const stored = localStorage.getItem("accessList");
+      let accessList = stored ? JSON.parse(stored) : [];
+          if (paymentScope === "content" && contentId) {
+    const exists = accessList.some(
+          (item: any) => item.scope === "content" && item.contentId === contentId
+          );
+          if (!exists) {
+    accessList.push({
+      scope: "content",
+      contentId,
+    });
+  }
+}
+if (paymentScope === "course" && courseId) {
+  const exists = accessList.some(
+    (item: any) =>
+      item.scope === "course" &&
+      item.courseId === courseId &&
+      item.access === "full"
+  );
+
+  if (!exists) {
+    accessList.push({
+      scope: "course",
+      courseId,
+      access: "full",
+    });
+  }
+}
+localStorage.setItem("accessList", JSON.stringify(accessList));
 
     animate(ctaBtnRef.current!, {
       scale: [1, 1.05, 0.98, 1],
@@ -420,18 +452,22 @@ export default function PaywallModal({
                       margin: "0 0 6px",
                       letterSpacing: "-0.3px",
                     }}
-                  >
+                      >
                     <span
                       ref={lockIconRef}
                       style={{ display: "inline-block", marginRight: 6 }}
-                    >
+                      >
                       🔒
                     </span>
-                    Unlock Premium Course
+                      {paymentScope === "course" ? "Unlock Full Course" : "Unlock Content"}
                   </h2>
+
                   <p style={{ color: "#6b6b8f", fontSize: 13, margin: 0 }}>
-                    Pay With Minimal 0.00000005 BTC to access {contentTitle}
+                    {paymentScope === "course"
+                    ? `Pay ${price} mUSD to unlock all course materials`
+                    : `Pay ${price} mUSD to unlock ${contentTitle}`}
                   </p>
+
                 </div>
                 <button
                   className="close-btn"
