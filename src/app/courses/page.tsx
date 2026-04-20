@@ -40,22 +40,18 @@ type CourseData = {
 
 type AccessRecord =
   | {
-    scope: "content";
-    contentId: number;
-  }
+      scope: "content";
+      contentId: number;
+    }
   | {
-    scope: "course";
-    courseId: number;
-    access: "full";
-  };
+      scope: "course";
+      courseId: number;
+      access: "full";
+    };
 
 export default function LessonPage() {
   return <LessonContent />;
 }
-
-
-
-
 
 const courseData: CourseData = {
   id: 1,
@@ -91,7 +87,8 @@ const courseData: CourseData = {
       type: "module",
       title: "Quantum Mechanics Module PDF",
       price: "Free",
-      source: "https://drive.google.com/file/d/1exKF6lLK963Dy7KBuqDoFRrVijp4YNOn/preview",
+      source:
+        "https://drive.google.com/file/d/1exKF6lLK963Dy7KBuqDoFRrVijp4YNOn/preview",
       isFree: true,
     },
     {
@@ -102,7 +99,8 @@ const courseData: CourseData = {
       isFree: true,
       body: "Quantum mechanics is the fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles. It is the foundation of all quantum physics including quantum chemistry, quantum field theory, quantum technology, and quantum information science.",
       highlightTitle: "Key Concept: Energy Quanta",
-      highlightBody: "Max Planck discovered that energy is not continuous, but rather delivered in discrete 'packets' or quanta. This revolutionary idea shattered classical physics assumptions.",
+      highlightBody:
+        "Max Planck discovered that energy is not continuous, but rather delivered in discrete 'packets' or quanta. This revolutionary idea shattered classical physics assumptions.",
     },
     {
       id: 302,
@@ -121,7 +119,8 @@ const initialComments: DiscussionComment[] = [
     contentId: 101,
     author: "Alya",
     role: "user",
-    message: "Saya masih bingung perbedaan konsep kuanta dengan energi klasik. Bisa dijelaskan lebih sederhana?",
+    message:
+      "Saya masih bingung perbedaan konsep kuanta dengan energi klasik. Bisa dijelaskan lebih sederhana?",
     createdAt: "2 jam lalu",
     parentId: null,
   },
@@ -130,7 +129,8 @@ const initialComments: DiscussionComment[] = [
     contentId: 101,
     author: "Dr. Creator",
     role: "creator",
-    message: "Tentu. Secara sederhana, energi klasik dianggap kontinu, sedangkan pada konsep kuanta energi hadir dalam paket diskrit.",
+    message:
+      "Tentu. Secara sederhana, energi klasik dianggap kontinu, sedangkan pada konsep kuanta energi hadir dalam paket diskrit.",
     createdAt: "1 jam lalu",
     parentId: 1,
   },
@@ -139,20 +139,49 @@ const initialComments: DiscussionComment[] = [
     contentId: 201,
     author: "Bima",
     role: "user",
-    message: "Modulnya bagus, tetapi mungkin bisa ditambahkan contoh soal di bagian akhir.",
+    message:
+      "Modulnya bagus, tetapi mungkin bisa ditambahkan contoh soal di bagian akhir.",
     createdAt: "30 menit lalu",
     parentId: null,
   },
 ];
 
+const COMPLETED_STORAGE_KEY = "completedContents";
+
+export function getCompletedCount(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const stored = localStorage.getItem(COMPLETED_STORAGE_KEY);
+    return stored ? (JSON.parse(stored) as number[]).length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function LessonContent() {
   const Router = useRouter();
+  const [activeContentId, setActiveContentId] = useState<number>(
+    courseData.contents[0].id,
+  );
+  const [completedList, setCompletedList] = useState<number[]>([]);
   const [completed, setCompleted] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(COMPLETED_STORAGE_KEY);
+      const list = stored ? JSON.parse(stored) : [];
+      setCompletedList(list);
+      setCompleted(list.includes(activeContentId));
+    } catch {
+      setCompletedList([]);
+    }
+  }, [activeContentId]);
   const [tipAmount, setTipAmount] = useState<number | null>(null);
   const [isTipHovered, setIsTipHovered] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [comments, setComments] = useState<DiscussionComment[]>(initialComments);
+  const [comments, setComments] =
+    useState<DiscussionComment[]>(initialComments);
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [accessList, setAccessList] = useState<AccessRecord[]>(() => {
@@ -164,7 +193,9 @@ function LessonContent() {
   });
 
   const hasContentAccess = (contentId: number, courseId: number) => {
-    const contentItem = courseData.contents.find((item) => item.id === contentId);
+    const contentItem = courseData.contents.find(
+      (item) => item.id === contentId,
+    );
 
     if (contentItem?.isFree) return true;
 
@@ -173,7 +204,7 @@ function LessonContent() {
         (item.scope === "content" && item.contentId === contentId) ||
         (item.scope === "course" &&
           item.courseId === courseId &&
-          item.access === "full")
+          item.access === "full"),
     );
   };
 
@@ -182,20 +213,19 @@ function LessonContent() {
       (item) =>
         item.scope === "course" &&
         item.courseId === courseId &&
-        item.access === "full"
+        item.access === "full",
     );
   };
-
-  const [activeContentId, setActiveContentId] = useState<number>(
-    courseData.contents[0].id
-  );
 
   const activeContent =
     courseData.contents.find((item) => item.id === activeContentId) ||
     courseData.contents[0];
 
-  const [selectedContent, setSelectedContent] = useState<CourseContentItem | null>(null);
-  const [paywallMode, setPaywallMode] = useState<"content" | "course" | "tip">("content");
+  const [selectedContent, setSelectedContent] =
+    useState<CourseContentItem | null>(null);
+  const [paywallMode, setPaywallMode] = useState<"content" | "course" | "tip">(
+    "content",
+  );
 
   const openContentPaywall = (content: CourseContentItem) => {
     setSelectedContent(content);
@@ -216,11 +246,10 @@ function LessonContent() {
   };
 
   const unlockedCount = courseData.contents.filter((content) =>
-    hasContentAccess(content.id, courseData.id)
+    hasContentAccess(content.id, courseData.id),
   ).length;
 
-  const progressPercentage =
-    (unlockedCount / courseData.contents.length) * 100;
+  const progressPercentage = (unlockedCount / courseData.contents.length) * 100;
 
   useEffect(() => {
     setIsHydrated(true);
@@ -228,14 +257,16 @@ function LessonContent() {
 
   if (!isHydrated) {
     return (
-      <main style={{ minHeight: "100vh", background: "#0d0d1a", color: "#e8e8f0" }}>
+      <main
+        style={{ minHeight: "100vh", background: "#0d0d1a", color: "#e8e8f0" }}
+      >
         <div style={{ padding: "40px" }}>Loading course...</div>
       </main>
     );
   }
 
   const activeComments = comments.filter(
-    (comment) => comment.contentId === activeContent.id
+    (comment) => comment.contentId === activeContent.id,
   );
   const rootComments = activeComments.filter((comment) => !comment.parentId);
   const getReplies = (commentId: number) =>
@@ -253,8 +284,7 @@ function LessonContent() {
   const handleAddComment = () => {
     if (!newComment.trim()) return;
 
-    const finalParentId =
-      replyTo === null ? null : getRootParentId(replyTo);
+    const finalParentId = replyTo === null ? null : getRootParentId(replyTo);
 
     const comment: DiscussionComment = {
       id: Date.now(),
@@ -364,7 +394,13 @@ function LessonContent() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      alignItems: "center",
+                    }}
+                  >
                     <strong style={{ color: "#f0f0ff" }}>{reply.author}</strong>
                     <span
                       style={{
@@ -386,7 +422,13 @@ function LessonContent() {
                   </span>
                 </div>
 
-                <p style={{ margin: "0 0 10px", color: "#cfcfe8", lineHeight: 1.7 }}>
+                <p
+                  style={{
+                    margin: "0 0 10px",
+                    color: "#cfcfe8",
+                    lineHeight: 1.7,
+                  }}
+                >
                   {reply.message}
                 </p>
 
@@ -426,10 +468,12 @@ function LessonContent() {
               role="button"
               onClick={() => Router.back()}
             >
-              Web3<span className="logoAccent">Learn</span>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>
+                Web3 <span style={{ color: "#6366f1" }}>Learning</span>
+              </span>
             </span>
           </div>
-          {["Courses", "Library", "Community", "Wallet"].map((n) => (
+          {["My Course", "Library", "Community", "Wallet"].map((n) => (
             <Link key={n} href={`/${n.toLowerCase()}`} className="navLink">
               {n}
             </Link>
@@ -452,7 +496,6 @@ function LessonContent() {
 
       {/* LAYOUT */}
       <div style={{ display: "flex", minHeight: "100vh" }}>
-
         {/* SIDEBAR */}
         <aside
           style={{
@@ -546,7 +589,6 @@ function LessonContent() {
                     onClick={() => {
                       setActiveContentId(content.id);
                     }}
-
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -566,9 +608,26 @@ function LessonContent() {
                       transition: "all 0.18s ease",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", width: "100%" }}>
-                      <span style={{ fontSize: "15px", lineHeight: 1.2, opacity: 0.95 }}>
-                        {content.type === "video" ? "🎬" : content.type === "module" ? "📘" : "📝"}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "10px",
+                        width: "100%",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "15px",
+                          lineHeight: 1.2,
+                          opacity: 0.95,
+                        }}
+                      >
+                        {content.type === "video"
+                          ? "🎬"
+                          : content.type === "module"
+                            ? "📘"
+                            : "📝"}
                       </span>
 
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -592,8 +651,12 @@ function LessonContent() {
                             lineHeight: 1.3,
                           }}
                         >
-                          {content.type === "video" ? "Video" : content.type === "module" ? "Module" : "Article"} ·{" "}
-                          {content.isFree ? "Free" : `${content.price} mUSD`}
+                          {content.type === "video"
+                            ? "Video"
+                            : content.type === "module"
+                              ? "Module"
+                              : "Article"}{" "}
+                          · {content.isFree ? "Free" : `${content.price} mUSD`}
                         </div>
                       </div>
                     </div>
@@ -650,7 +713,6 @@ function LessonContent() {
 
         {/* MAIN CONTENT */}
         <div style={{ flex: 1, padding: "32px 48px", maxWidth: "860px" }}>
-
           {/* Unlocked badge */}
           <div
             style={{
@@ -662,10 +724,11 @@ function LessonContent() {
               background: hasContentAccess(activeContent.id, courseData.id)
                 ? "rgba(34, 197, 94, 0.12)"
                 : "rgba(255, 165, 0, 0.12)",
-              border: `1px solid ${hasContentAccess(activeContent.id, courseData.id)
-                ? "rgba(34, 197, 94, 0.25)"
-                : "rgba(255, 165, 0, 0.25)"
-                }`,
+              border: `1px solid ${
+                hasContentAccess(activeContent.id, courseData.id)
+                  ? "rgba(34, 197, 94, 0.25)"
+                  : "rgba(255, 165, 0, 0.25)"
+              }`,
               color: hasContentAccess(activeContent.id, courseData.id)
                 ? "#4ade80"
                 : "#ffa500",
@@ -708,7 +771,19 @@ function LessonContent() {
             </h1>
 
             <button
-              onClick={() => setCompleted(!completed)}
+              onClick={() => {
+                if (!hasContentAccess(activeContent.id, courseData.id)) return;
+                const newList = completed
+                  ? completedList.filter((id) => id !== activeContentId)
+                  : [...completedList, activeContentId];
+                setCompletedList(newList);
+                setCompleted(!completed);
+                localStorage.setItem(
+                  COMPLETED_STORAGE_KEY,
+                  JSON.stringify(newList),
+                );
+              }}
+              disabled={!hasContentAccess(activeContent.id, courseData.id)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -717,20 +792,38 @@ function LessonContent() {
                 borderRadius: "10px",
                 border: completed
                   ? "1px solid rgba(34,197,94,0.4)"
-                  : "1px solid rgba(255,255,255,0.12)",
+                  : hasContentAccess(activeContent.id, courseData.id)
+                    ? "1px solid rgba(255,255,255,0.12)"
+                    : "1px solid rgba(255,255,255,0.06)",
                 background: completed
                   ? "rgba(34,197,94,0.12)"
-                  : "rgba(255,255,255,0.05)",
-                color: completed ? "#4ade80" : "#aaa",
+                  : hasContentAccess(activeContent.id, courseData.id)
+                    ? "rgba(255,255,255,0.05)"
+                    : "rgba(255,255,255,0.02)",
+                color: hasContentAccess(activeContent.id, courseData.id)
+                  ? completed
+                    ? "#4ade80"
+                    : "#aaa"
+                  : "#555",
                 fontSize: "13px",
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: hasContentAccess(activeContent.id, courseData.id)
+                  ? "pointer"
+                  : "not-allowed",
                 whiteSpace: "nowrap",
                 transition: "all 0.2s",
                 flexShrink: 0,
+                opacity: hasContentAccess(activeContent.id, courseData.id) ? 1 : 0.5,
               }}
             >
-              {completed ? "✓" : "○"} Mark Complete
+              {!hasContentAccess(activeContent.id, courseData.id)
+                ? "🔒"
+                : completed
+                  ? "✓"
+                  : "○"}{" "}
+              {hasContentAccess(activeContent.id, courseData.id)
+                ? "Mark Complete"
+                : "Locked"}
             </button>
           </div>
 
@@ -743,7 +836,6 @@ function LessonContent() {
                 ? "Module document preview"
                 : "Reading material"}
           </p>
-
 
           {/* Video player */}
           <div
@@ -868,38 +960,39 @@ function LessonContent() {
                     {activeContent.body}
                   </p>
 
-                  {activeContent.highlightTitle && activeContent.highlightBody && (
-                    <div
-                      style={{
-                        borderRadius: "12px",
-                        border: "1px solid rgba(108,99,255,0.2)",
-                        background: "rgba(108,99,255,0.06)",
-                        padding: "20px 24px",
-                        marginBottom: "28px",
-                      }}
-                    >
-                      <p
+                  {activeContent.highlightTitle &&
+                    activeContent.highlightBody && (
+                      <div
                         style={{
-                          color: "#a78bfa",
-                          fontWeight: 700,
-                          fontSize: "16px",
-                          marginBottom: "8px",
+                          borderRadius: "12px",
+                          border: "1px solid rgba(108,99,255,0.2)",
+                          background: "rgba(108,99,255,0.06)",
+                          padding: "20px 24px",
+                          marginBottom: "28px",
                         }}
                       >
-                        {activeContent.highlightTitle}
-                      </p>
-                      <p
-                        style={{
-                          color: "#9090b8",
-                          fontSize: "14px",
-                          lineHeight: 1.7,
-                          margin: 0,
-                        }}
-                      >
-                        {activeContent.highlightBody}
-                      </p>
-                    </div>
-                  )}
+                        <p
+                          style={{
+                            color: "#a78bfa",
+                            fontWeight: 700,
+                            fontSize: "16px",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          {activeContent.highlightTitle}
+                        </p>
+                        <p
+                          style={{
+                            color: "#9090b8",
+                            fontSize: "14px",
+                            lineHeight: 1.7,
+                            margin: 0,
+                          }}
+                        >
+                          {activeContent.highlightBody}
+                        </p>
+                      </div>
+                    )}
                 </div>
               )
             ) : (
@@ -974,7 +1067,14 @@ function LessonContent() {
               Discussion Panel
             </h3>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "14px",
+                marginBottom: "20px",
+              }}
+            >
               {rootComments.length === 0 ? (
                 <p style={{ color: "#8d8db2", margin: 0 }}>
                   No discussion yet for this content.

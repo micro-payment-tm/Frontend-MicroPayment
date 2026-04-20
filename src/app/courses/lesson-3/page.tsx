@@ -637,7 +637,9 @@ export default function LessonPage3() {
           window.location.reload();
         }}
         contentTitle="Uncertainty Principle"
-        lessonId={3}
+        paymentScope="content"
+        contentId={3}
+        price="0.00"
       />
     </main>
   );

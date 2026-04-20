@@ -806,7 +806,9 @@ export default function LessonPage2() {
           window.location.reload();
         }}
         contentTitle="Wave-Particle Duality"
-        lessonId={2}
+        paymentScope="content"
+        contentId={2}
+        price="0.00"
       />
 
       <style jsx>{`

@@ -57,13 +57,20 @@ export async function POST(request: NextRequest) {
   request.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (lowerKey !== "host" && lowerKey !== "content-length") {
-      headers[key] = value;
+      // Preserve Authorization header (case-insensitive)
+      if (lowerKey === "authorization") {
+        headers["Authorization"] = value;
+      } else {
+        headers[key] = value;
+      }
     }
   });
 
   console.log("[Proxy POST] headers:", JSON.stringify(headers));
+  console.log("[Proxy POST] Authorization:", headers["Authorization"] ? "present" : "missing");
 
   const body = await request.json();
+  console.log("[Proxy POST] body:", JSON.stringify(body));
 
   try {
     const response = await fetch(targetUrl, {

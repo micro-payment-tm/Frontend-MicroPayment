@@ -8,6 +8,23 @@ import QRCodeLib from "qrcode";
 
 const CREATOR_WALLET_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 
+export interface TipHistoryItem {
+  date: string;
+  course: string;
+  amount: string;
+  txHash: string;
+}
+
+export function getTipHistory(): TipHistoryItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem("tipHistory");
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -215,6 +232,20 @@ useEffect(() => {
       setPaymentError(result.message || "Payment failed");
       return;
     }
+
+    // Save tip history to localStorage
+    const tipHistoryItem: TipHistoryItem = {
+      date: new Date().toISOString(),
+      course: contentTitle,
+      amount: paymentAmount,
+      txHash: result.txHash || "",
+    };
+    const storedTipHistory = localStorage.getItem("tipHistory");
+    const tipHistory: TipHistoryItem[] = storedTipHistory
+      ? JSON.parse(storedTipHistory)
+      : [];
+    tipHistory.unshift(tipHistoryItem);
+    localStorage.setItem("tipHistory", JSON.stringify(tipHistory));
 
     setUnlocked(true);
 

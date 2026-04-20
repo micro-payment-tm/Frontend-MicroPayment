@@ -22,6 +22,8 @@ export async function sendPayment(
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
+  console.log("[sendPayment] Token:", token ? token.substring(0, 20) + "..." : "null");
+
   const amountInWei = toWei(params.amount);
 
   try {
