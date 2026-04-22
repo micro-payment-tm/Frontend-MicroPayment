@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { animate, stagger } from "animejs";
-import { useAccount, useBalance, useChainId, useDisconnect } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { sendPayment } from "@/repostiory/sendPayment";
 import QRCodeLib from "qrcode";
 
-const CREATOR_WALLET_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -15,7 +14,7 @@ interface PaywallModalProps {
   contentTitle: string;
   creatorAddress?: string;
 
-  paymentScope: "content" | "course";
+  paymentScope: "content" | "course" | "tip";
   contentId?: number;
   courseId?: number;
   price: string;
@@ -45,15 +44,21 @@ export default function PaywallModal({
   // NEW: separate state untuk tampilkan success overlay
   const [showSuccess, setShowSuccess] = useState(false);
 
-useEffect(() => {
-  setVisible(isOpen);
+  useEffect(() => {
+    setVisible(isOpen);
 
-  if (isOpen) {
-    setShowSuccess(false);
-    setUnlocked(false);
-    setPaymentError("");
-  }
-}, [isOpen]);
+    if (isOpen) {
+      setShowSuccess(false);
+      setUnlocked(false);
+      setPaymentError("");
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTipAmount(price || "0.0001");
+    }
+  }, [isOpen, price]);
 
   useEffect(() => {
     const generateQR = async () => {
@@ -192,6 +197,8 @@ useEffect(() => {
     }
   };
 
+  const isTipMode = paymentScope === "tip";
+
   const handlePay = async () => {
     animate(ctaBtnRef.current!, {
       scale: [1, 0.96, 1],
@@ -220,35 +227,35 @@ useEffect(() => {
 
     // Save unlocked lesson
     const stored = localStorage.getItem("accessList");
-      let accessList = stored ? JSON.parse(stored) : [];
-          if (paymentScope === "content" && contentId) {
-    const exists = accessList.some(
-          (item: any) => item.scope === "content" && item.contentId === contentId
-          );
-          if (!exists) {
-    accessList.push({
-      scope: "content",
-      contentId,
-    });
-  }
-}
-if (paymentScope === "course" && courseId) {
-  const exists = accessList.some(
-    (item: any) =>
-      item.scope === "course" &&
-      item.courseId === courseId &&
-      item.access === "full"
-  );
+    let accessList = stored ? JSON.parse(stored) : [];
+    if (paymentScope === "content" && contentId) {
+      const exists = accessList.some(
+        (item: any) => item.scope === "content" && item.contentId === contentId
+      );
+      if (!exists) {
+        accessList.push({
+          scope: "content",
+          contentId,
+        });
+      }
+    }
+    if (paymentScope === "course" && courseId) {
+      const exists = accessList.some(
+        (item: any) =>
+          item.scope === "course" &&
+          item.courseId === courseId &&
+          item.access === "full"
+      );
 
-  if (!exists) {
-    accessList.push({
-      scope: "course",
-      courseId,
-      access: "full",
-    });
-  }
-}
-localStorage.setItem("accessList", JSON.stringify(accessList));
+      if (!exists) {
+        accessList.push({
+          scope: "course",
+          courseId,
+          access: "full",
+        });
+      }
+    }
+    localStorage.setItem("accessList", JSON.stringify(accessList));
 
     animate(ctaBtnRef.current!, {
       scale: [1, 1.05, 0.98, 1],
@@ -375,8 +382,13 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                 opacity: 0,
               }}
             >
-              Course Unlocked!
+              {paymentScope === "tip"
+                ? "Tip Sent Successfully!"
+                : paymentScope === "course"
+                  ? "Course Unlocked!"
+                  : "Content Unlocked!"}
             </p>
+
             <p
               className="success-text"
               style={{
@@ -386,8 +398,11 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                 opacity: 0,
               }}
             >
-              Enjoy your premium content
+              {paymentScope === "tip"
+                ? "Thank you for supporting the instructor."
+                : "Enjoy your premium content"}
             </p>
+
             <button
               className="success-text"
               onClick={() => {
@@ -407,7 +422,7 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                 opacity: 0,
               }}
             >
-              Start Learning →
+              {paymentScope === "tip" ? "Done" : "Start Learning →"}
             </button>
           </div>
         )}
@@ -452,20 +467,26 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                       margin: "0 0 6px",
                       letterSpacing: "-0.3px",
                     }}
-                      >
+                  >
                     <span
                       ref={lockIconRef}
                       style={{ display: "inline-block", marginRight: 6 }}
-                      >
+                    >
                       🔒
                     </span>
-                      {paymentScope === "course" ? "Unlock Full Course" : "Unlock Content"}
+                    {paymentScope === "course"
+                      ? "Unlock Full Course"
+                      : paymentScope === "tip"
+                        ? "Send a Tip"
+                        : "Unlock Content"}
                   </h2>
 
                   <p style={{ color: "#6b6b8f", fontSize: 13, margin: 0 }}>
                     {paymentScope === "course"
-                    ? `Pay ${price} mUSD to unlock all course materials`
-                    : `Pay ${price} mUSD to unlock ${contentTitle}`}
+                      ? `Pay ${price} mUSD to unlock all course materials`
+                      : paymentScope === "tip"
+                        ? "Send a tip to support the instructor"
+                        : `Pay ${price} mUSD to unlock ${contentTitle}`}
                   </p>
 
                 </div>
@@ -503,7 +524,7 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                 padding: "0 28px 28px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 16,
+                gap: 10,
               }}
             >
               {/* Balance Card */}
@@ -724,7 +745,9 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                       margin: "0 0 10px",
                     }}
                   >
-                    Support the Creator (Tip)
+                    {paymentScope === "tip"
+                      ? "Support the Creator"
+                      : "Payment Details"}
                   </p>
                   <div
                     className="tip-input-box"
@@ -742,18 +765,22 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                     <input
                       type="number"
                       value={tipAmount}
-                      onChange={(e) => setTipAmount(e.target.value)}
+                      onChange={(e) => {
+                        if (isTipMode) setTipAmount(e.target.value);
+                      }}
+                      readOnly={!isTipMode}
                       style={{
                         flex: 1,
                         background: "transparent",
                         border: "none",
-                        color: "#e8e8f0",
+                        color: isTipMode ? "#e8e8f0" : "#b8b8d8",
                         fontSize: 18,
                         fontWeight: 600,
                         fontFamily: "'DM Mono', monospace",
                         outline: "none",
                         padding: "8px 0",
                         width: 0,
+                        cursor: isTipMode ? "text" : "default",
                       }}
                     />
                     <span
@@ -767,20 +794,39 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                       {selectedToken}
                     </span>
                   </div>
+
+                  <p
+                    style={{
+                      color: "#6b6b8f",
+                      fontSize: 10,
+                      margin: "0 0 8px",
+                    }}
+                  >
+                    {isTipMode
+                      ? "You can customize your tip amount."
+                      : "This amount is fixed for content access."}
+                  </p>
+
                   <div style={{ display: "flex", gap: 6 }}>
                     {[1, 5, 10].map((v) => (
                       <button
                         key={v}
-                        onClick={() => addTip(v)}
+                        onClick={() => {
+                          if (isTipMode) addTip(v);
+                        }}
+                        disabled={!isTipMode}
                         style={{
                           padding: "5px 10px",
                           borderRadius: 6,
                           border: "1px solid rgba(255,255,255,0.1)",
-                          background: "rgba(255,255,255,0.04)",
-                          color: "#9090b8",
+                          background: isTipMode
+                            ? "rgba(255,255,255,0.04)"
+                            : "rgba(255,255,255,0.02)",
+                          color: isTipMode ? "#9090b8" : "#5a5a7a",
                           fontSize: 11,
                           fontWeight: 600,
-                          cursor: "pointer",
+                          cursor: isTipMode ? "pointer" : "not-allowed",
+                          opacity: isTipMode ? 1 : 0.55,
                         }}
                       >
                         +{v}.00
@@ -819,7 +865,9 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                 }}
               >
                 {unlocked ? (
-                  <>✓ Unlocked!</>
+                  <>
+                    {paymentScope === "tip" ? "✓ Tip Sent!" : "✓ Unlocked!"}
+                  </>
                 ) : isProcessing ? (
                   <>
                     <span
@@ -836,7 +884,13 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                     Processing...
                   </>
                 ) : (
-                  <>🔒 Send Tip & Unlock Course</>
+                  <>
+                    {paymentScope === "tip"
+                      ? "💚 Send Your Tip"
+                      : paymentScope === "course"
+                        ? "🔒 Unlock Full Course"
+                        : "🔒 Unlock Content"}
+                  </>
                 )}
               </button>
 
@@ -877,7 +931,9 @@ localStorage.setItem("accessList", JSON.stringify(accessList));
                     textTransform: "uppercase",
                   }}
                 >
-                  Send {tipAmount || "0.0001"} ETH to
+                  {paymentScope === "tip"
+                    ? `Send ${tipAmount || "0.0001"} ETH to`
+                    : `Pay ${tipAmount || "0.0001"} ETH to`}
                 </p>
                 <p
                   style={{
