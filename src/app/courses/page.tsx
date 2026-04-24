@@ -1241,8 +1241,10 @@ function LessonContent() {
         onSuccess={() => {
           setShowPaywallModal(false);
 
-          const stored = localStorage.getItem("accessList");
-          setAccessList(stored ? JSON.parse(stored) : []);
+          if (paywallMode === "content" || paywallMode === "course") {
+            const stored = localStorage.getItem("accessList");
+            setAccessList(stored ? JSON.parse(stored) : []);
+          }
 
           if (paywallMode === "content" && selectedContent) {
             setActiveContentId(selectedContent.id);
@@ -1256,9 +1258,9 @@ function LessonContent() {
               : selectedContent?.title || "Content"
         }
         creatorAddress="0xCreatorWalletAddress123456789abcdef"
-        paymentScope={paywallMode === "tip" ? "content" : paywallMode}
+        paymentScope={paywallMode}
         contentId={paywallMode === "content" ? selectedContent?.id : undefined}
-        courseId={courseData.id}
+        courseId={paywallMode === "course" ? courseData.id : undefined}
         price={
           paywallMode === "course"
             ? courseData.fullPrice
